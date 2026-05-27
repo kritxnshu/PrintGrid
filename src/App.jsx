@@ -3,8 +3,8 @@ import { flushSync } from 'react-dom';
 import { jsPDF } from 'jspdf';
 import CanvasEditor from './components/CanvasEditor';
 import ControlsPanel from './components/ControlsPanel';
+import ImageEditPanel from './components/ImageEditPanel';
 import UploadPanel from './components/UploadPanel';
-import headerLogo from './assets/printgrid-header.png';
 import { buildExportCanvas, createExportBlob, downloadBlob, getSafeExportDpi } from './utils/export';
 import {
   CUSTOM_PAPER_SIZE_KEY,
@@ -25,6 +25,17 @@ const DEFAULT_CUSTOM_PAPER = {
   widthMm: PAPER_SIZES.A4.widthMm,
   heightMm: PAPER_SIZES.A4.heightMm,
 };
+const DEFAULT_IMAGE_EDIT_STATE = {
+  scale: 1,
+  rotation: 0,
+  flipX: false,
+  flipY: false,
+  brightness: 0,
+  contrast: 0,
+  cropX: 0,
+  cropY: 0,
+};
+const DIMENSION_SEPARATOR = '\u00D7';
 const FORMAT_LABELS = {
   pdf: 'PDF',
   png: 'PNG',
@@ -68,6 +79,27 @@ const createImageId = (fileName) => {
   return `${fileName}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 };
 
+const clampUnitRange = (value) => {
+  const numericValue = Number.parseFloat(value);
+
+  if (Number.isNaN(numericValue)) {
+    return 0;
+  }
+
+  return Math.max(-1, Math.min(1, numericValue));
+};
+
+const normalizeRotation = (value) => {
+  const numericValue = Number.parseFloat(value);
+
+  if (Number.isNaN(numericValue)) {
+    return 0;
+  }
+
+  const normalizedValue = numericValue % 360;
+  return normalizedValue < 0 ? normalizedValue + 360 : normalizedValue;
+};
+
 const loadImageFile = (file) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -83,7 +115,7 @@ const loadImageFile = (file) =>
           width: imageElement.naturalWidth,
           height: imageElement.naturalHeight,
           element: imageElement,
-          scale: 1,
+          ...DEFAULT_IMAGE_EDIT_STATE,
         });
       };
 
@@ -125,6 +157,54 @@ const formatPaperDimensionMm = (value) => {
   return Number.isInteger(roundedValue) ? `${roundedValue}` : roundedValue.toFixed(1);
 };
 
+const SnapsheetWordmark = ({ isDarkMode }) => {
+  const snapColor = isDarkMode ? '#f8fafc' : '#0f172a';
+
+  return (
+    <svg
+      viewBox="0 0 320 72"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Snapsheet"
+      className="relative h-[56px] w-[248px] select-none sm:h-[64px] sm:w-[284px] md:h-[72px] md:w-[320px]"
+    >
+      <title>Snapsheet</title>
+      <desc>2x2 photo grid icon with Snapsheet wordmark</desc>
+      <rect x="4" y="4" width="28" height="28" rx="6" fill="#2563eb" />
+      <rect x="36" y="4" width="28" height="28" rx="6" fill="#3b82f6" />
+      <rect x="4" y="36" width="28" height="28" rx="6" fill="#3b82f6" />
+      <rect x="36" y="36" width="28" height="28" rx="6" fill="#1d4ed8" />
+      <circle cx="14" cy="14" r="4" fill="#93c5fd" opacity="0.7" />
+      <circle cx="46" cy="14" r="4" fill="#bfdbfe" opacity="0.6" />
+      <circle cx="14" cy="46" r="4" fill="#dbeafe" opacity="0.55" />
+      <circle cx="46" cy="46" r="4" fill="#60a5fa" opacity="0.7" />
+      <text
+        x="82"
+        y="44"
+        fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
+        fontSize="34"
+        fontWeight="700"
+        letterSpacing="-1"
+        fill={snapColor}
+      >
+        Snap
+      </text>
+      <text
+        x="175"
+        y="44"
+        fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
+        fontSize="34"
+        fontWeight="300"
+        letterSpacing="-0.5"
+        fill="#2563eb"
+      >
+        sheet
+      </text>
+    </svg>
+  );
+};
+
 function App() {
   const stageRef = useRef(null);
   const downloadMenuRef = useRef(null);
@@ -146,6 +226,7 @@ function App() {
   const [images, setImages] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedImageId, setSelectedImageId] = useState(null);
+  const [isCropModeEnabled, setIsCropModeEnabled] = useState(false);
   const [exportDpi, setExportDpi] = useState(300);
   const [isExporting, setIsExporting] = useState(false);
   const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
@@ -166,7 +247,10 @@ function App() {
   );
 
   const cellCount = useMemo(() => getCellCount(rows, columns), [columns, rows]);
-  const pageCount = useMemo(() => getPageCount(images.length, rows, columns), [columns, images.length, rows]);
+  const pageCount = useMemo(
+    () => getPageCount(images.length, rows, columns),
+    [columns, images.length, rows],
+  );
 
   const cells = useMemo(
     () =>
@@ -188,6 +272,11 @@ function App() {
   const selectedImage = useMemo(
     () => images.find((image) => image.id === selectedImageId) ?? null,
     [images, selectedImageId],
+  );
+
+  const selectedImageOnCurrentPage = useMemo(
+    () => currentPageImages.find((image) => image.id === selectedImageId) ?? null,
+    [currentPageImages, selectedImageId],
   );
 
   const firstCell = cells[0] ?? {
@@ -220,6 +309,10 @@ function App() {
   }, [images, selectedImageId]);
 
   useEffect(() => {
+    setIsCropModeEnabled(false);
+  }, [selectedImageId]);
+
+  useEffect(() => {
     const handlePointerDown = (event) => {
       if (downloadMenuRef.current && !downloadMenuRef.current.contains(event.target)) {
         setIsDownloadMenuOpen(false);
@@ -232,6 +325,18 @@ function App() {
       document.removeEventListener('mousedown', handlePointerDown);
     };
   }, []);
+
+  const updateSelectedImage = (updater) => {
+    if (!selectedImageId) {
+      return;
+    }
+
+    setImages((previousImages) =>
+      previousImages.map((image) =>
+        image.id === selectedImageId ? updater(image) : image,
+      ),
+    );
+  };
 
   const handleFilesSelected = async (fileList) => {
     const selectedFiles = Array.from(fileList);
@@ -309,21 +414,60 @@ function App() {
 
     if (selectedImageId === imageId) {
       setSelectedImageId(null);
+      setIsCropModeEnabled(false);
     }
   };
 
   const handleSelectedImageScaleChange = (scale) => {
-    if (!selectedImageId) {
-      return;
-    }
+    updateSelectedImage((image) => ({
+      ...image,
+      scale: Math.max(0.4, Math.min(2.5, Number(scale) || 1)),
+    }));
+  };
 
-    const safeScale = Math.max(0.4, Math.min(2.5, Number(scale) || 1));
+  const handleRotationChange = (rotation) => {
+    updateSelectedImage((image) => ({
+      ...image,
+      rotation: normalizeRotation(rotation),
+    }));
+  };
 
-    setImages((previousImages) =>
-      previousImages.map((image) =>
-        image.id === selectedImageId ? { ...image, scale: safeScale } : image,
-      ),
-    );
+  const handleFlipChange = (axis) => {
+    updateSelectedImage((image) => ({
+      ...image,
+      flipX: axis === 'x' ? !image.flipX : image.flipX,
+      flipY: axis === 'y' ? !image.flipY : image.flipY,
+    }));
+  };
+
+  const handleBrightnessChange = (brightness) => {
+    updateSelectedImage((image) => ({
+      ...image,
+      brightness: clampUnitRange(brightness),
+    }));
+  };
+
+  const handleContrastChange = (contrast) => {
+    updateSelectedImage((image) => ({
+      ...image,
+      contrast: clampUnitRange(contrast),
+    }));
+  };
+
+  const handleCropChange = (cropX, cropY) => {
+    updateSelectedImage((image) => ({
+      ...image,
+      cropX: Number(cropX) || 0,
+      cropY: Number(cropY) || 0,
+    }));
+  };
+
+  const handleResetAllEdits = () => {
+    updateSelectedImage((image) => ({
+      ...image,
+      ...DEFAULT_IMAGE_EDIT_STATE,
+    }));
+    setIsCropModeEnabled(false);
   };
 
   const handleCustomPaperChange = (field, value) => {
@@ -474,12 +618,7 @@ function App() {
                     : 'bg-[radial-gradient(circle_at_left,rgba(59,130,246,0.14),transparent_72%)]'
                 }`}
               />
-              <img
-                src={headerLogo}
-                alt="PrintGrid"
-                className="relative h-[64px] w-auto max-w-[220px] object-contain object-left select-none sm:h-[76px] sm:max-w-[280px] md:h-[86px] md:max-w-[340px] xl:h-[92px] xl:max-w-[380px]"
-                draggable="false"
-              />
+              <SnapsheetWordmark isDarkMode={isDarkMode} />
             </div>
           </div>
 
@@ -487,13 +626,15 @@ function App() {
             <button
               type="button"
               onClick={() => setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark'))}
-              className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              className={`flex h-[50px] w-[50px] items-center justify-center rounded-2xl border text-xl transition ${
                 isDarkMode
                   ? 'border-slate-700 bg-slate-900 text-slate-200 hover:border-slate-600 hover:text-white'
                   : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:text-slate-900'
               }`}
             >
-              {isDarkMode ? 'Switch to light' : 'Switch to dark'}
+              <span aria-hidden="true">{isDarkMode ? '\u2600' : '\u{1F319}'}</span>
             </button>
 
             <label
@@ -612,10 +753,10 @@ function App() {
               }`}
             >
               <div className={`font-medium ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>
-                {paperOption.label} · {formatPaperDimensionMm(pageDimensions.widthMm)} × {formatPaperDimensionMm(pageDimensions.heightMm)} mm
+                {paperOption.label} {DIMENSION_SEPARATOR} {formatPaperDimensionMm(pageDimensions.widthMm)} {DIMENSION_SEPARATOR} {formatPaperDimensionMm(pageDimensions.heightMm)} mm
               </div>
               <div>
-                {pageDimensions.widthPx} × {pageDimensions.heightPx} px preview
+                {pageDimensions.widthPx} {DIMENSION_SEPARATOR} {pageDimensions.heightPx} px preview
               </div>
             </div>
 
@@ -660,7 +801,7 @@ function App() {
                       </p>
                     </div>
                     <div className={`text-right text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      <div>{exportDimensions.widthPx} × {exportDimensions.heightPx} px</div>
+                      <div>{exportDimensions.widthPx} {DIMENSION_SEPARATOR} {exportDimensions.heightPx} px</div>
                       <div>{exportDpi} DPI</div>
                     </div>
                   </div>
@@ -739,17 +880,10 @@ function App() {
             cellWidth={firstCell.width}
             cellHeight={firstCell.height}
             pageCount={pageCount}
-            selectedImage={selectedImage}
             onRowsChange={(value) => setRows(clampGridValue(value))}
             onColumnsChange={(value) => setColumns(clampGridValue(value))}
             onGapChange={(value) => setGap(Math.max(0, Math.min(20, Number(value) || 0)))}
             onFitModeChange={setFitMode}
-            onSelectedImageScaleChange={handleSelectedImageScaleChange}
-            onRemoveSelectedImage={() => {
-              if (selectedImageId) {
-                handleRemoveImage(selectedImageId);
-              }
-            }}
           />
 
           <section
@@ -766,27 +900,58 @@ function App() {
           </section>
         </aside>
 
-        <CanvasEditor
-          stageRef={stageRef}
-          isDarkMode={isDarkMode}
-          pageWidth={pageDimensions.widthPx}
-          pageHeight={pageDimensions.heightPx}
-          rows={rows}
-          columns={columns}
-          gap={gap}
-          fitMode={fitMode}
-          images={currentPageImages}
-          currentPage={currentPage}
-          totalPages={pageCount}
-          isExporting={isExporting}
-          selectedImageId={selectedImageId}
-          onPageChange={setCurrentPage}
-          onSelectImage={handleSelectImage}
-          onSwap={handleSwap}
-        />
+        <section className="space-y-6">
+          <CanvasEditor
+            stageRef={stageRef}
+            isDarkMode={isDarkMode}
+            pageWidth={pageDimensions.widthPx}
+            pageHeight={pageDimensions.heightPx}
+            rows={rows}
+            columns={columns}
+            gap={gap}
+            fitMode={fitMode}
+            images={currentPageImages}
+            currentPage={currentPage}
+            totalPages={pageCount}
+            isExporting={isExporting}
+            isCropModeEnabled={isCropModeEnabled}
+            selectedImageId={selectedImageId}
+            onPageChange={setCurrentPage}
+            onSelectImage={handleSelectImage}
+            onSwap={handleSwap}
+            onCropChange={handleCropChange}
+            renderEditPanel={selectedImageOnCurrentPage ? () => (
+              <ImageEditPanel
+                isDarkMode={isDarkMode}
+                selectedImage={selectedImageOnCurrentPage}
+                isCropModeEnabled={isCropModeEnabled}
+                onSelectedImageScaleChange={handleSelectedImageScaleChange}
+                onRemoveSelectedImage={() => {
+                  if (selectedImageId) {
+                    handleRemoveImage(selectedImageId);
+                  }
+                }}
+                onRotationChange={handleRotationChange}
+                onFlipChange={handleFlipChange}
+                onBrightnessChange={handleBrightnessChange}
+                onContrastChange={handleContrastChange}
+                onCropChange={handleCropChange}
+                onCropModeToggle={() => setIsCropModeEnabled((currentValue) => !currentValue)}
+                onResetAllEdits={handleResetAllEdits}
+                onClose={() => {
+                  setSelectedImageId(null);
+                  setIsCropModeEnabled(false);
+                }}
+              />
+            ) : null}
+          />
+        </section>
       </main>
     </div>
   );
 }
 
 export default App;
+
+
+

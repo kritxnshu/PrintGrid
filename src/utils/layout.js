@@ -51,22 +51,22 @@ export const PAPER_SIZES = {
     heightMm: 355.6,
   },
   '4x6': {
-    label: '4 × 6 in',
+    label: '4 \u00D7 6 in',
     widthMm: inchesToMm(4),
     heightMm: inchesToMm(6),
   },
   '5x7': {
-    label: '5 × 7 in',
+    label: '5 \u00D7 7 in',
     widthMm: inchesToMm(5),
     heightMm: inchesToMm(7),
   },
   '8x10': {
-    label: '8 × 10 in',
+    label: '8 \u00D7 10 in',
     widthMm: inchesToMm(8),
     heightMm: inchesToMm(10),
   },
   '8x12': {
-    label: '8 × 12 in',
+    label: '8 \u00D7 12 in',
     widthMm: inchesToMm(8),
     heightMm: inchesToMm(12),
   },
@@ -180,3 +180,4 @@ export const getFitDimensions = ({
     height,
   };
 };
+

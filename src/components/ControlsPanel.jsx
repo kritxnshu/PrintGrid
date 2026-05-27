@@ -8,13 +8,10 @@ function ControlsPanel({
   cellWidth,
   cellHeight,
   pageCount,
-  selectedImage,
   onRowsChange,
   onColumnsChange,
   onGapChange,
   onFitModeChange,
-  onSelectedImageScaleChange,
-  onRemoveSelectedImage,
 }) {
   return (
     <section
@@ -24,7 +21,9 @@ function ControlsPanel({
     >
       <div>
         <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>Layout</h2>
-        <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Control the print grid and photo fit.</p>
+        <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+          Set the page grid here, then click a photo on the canvas to edit it below the preview.
+        </p>
       </div>
 
       <div className="mt-5 space-y-5">
@@ -106,72 +105,6 @@ function ControlsPanel({
             })}
           </div>
         </div>
-
-        <div
-          className={`rounded-2xl border p-4 ${
-            isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-slate-50'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className={`text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Selected image</span>
-            {selectedImage ? (
-              <span className="text-xs font-medium text-blue-600">Ready to edit</span>
-            ) : null}
-          </div>
-
-          {selectedImage ? (
-            <>
-              <p className={`mt-2 truncate text-sm font-medium ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`} title={selectedImage.name}>
-                {selectedImage.name}
-              </p>
-              <div className="mt-4">
-                <div className="mb-2 flex items-center justify-between text-sm">
-                  <span className={isDarkMode ? 'text-slate-300' : 'text-slate-700'}>Image size</span>
-                  <span className={`font-medium ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>
-                    {Math.round((selectedImage.scale ?? 1) * 100)}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="40"
-                  max="250"
-                  step="5"
-                  value={Math.round((selectedImage.scale ?? 1) * 100)}
-                  onChange={(event) =>
-                    onSelectedImageScaleChange((Number(event.target.value) || 100) / 100)
-                  }
-                  className={`h-2 w-full cursor-pointer appearance-none rounded-full accent-blue-600 ${
-                    isDarkMode ? 'bg-slate-800' : 'bg-slate-200'
-                  }`}
-                />
-                <div className="mt-3 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onSelectedImageScaleChange(1)}
-                    className={`flex-1 rounded-xl border px-3 py-2 text-sm font-medium transition ${
-                      isDarkMode
-                        ? 'border-slate-700 text-slate-300 hover:border-slate-600 hover:text-slate-100'
-                        : 'border-slate-300 text-slate-700 hover:border-slate-400 hover:text-slate-900'
-                    }`}
-                  >
-                    Reset size
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onRemoveSelectedImage}
-                    className="flex-1 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-700"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <p className={`mt-2 text-sm leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              Select an image on the canvas to resize it or remove it from the layout.
-            </p>
-          )}
-        </div>
       </div>
 
       <div className={`mt-5 rounded-2xl p-4 text-sm ${isDarkMode ? 'bg-slate-950 text-slate-400' : 'bg-slate-50 text-slate-600'}`}>
@@ -182,7 +115,7 @@ function ControlsPanel({
         <div className="mt-2 flex items-center justify-between">
           <span>Cell size</span>
           <span className={`font-semibold ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>
-            {Math.round(cellWidth)} × {Math.round(cellHeight)} px
+            {Math.round(cellWidth)} {'\u00D7'} {Math.round(cellHeight)} px
           </span>
         </div>
         <div className="mt-2 flex items-center justify-between">
