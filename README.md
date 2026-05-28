@@ -2,7 +2,6 @@
 
 A browser-based photo print sheet builder. Upload images, arrange them in a custom grid, and export print-ready PDF, PNG, or JPEG at up to 300 DPI — no account, no installation, no upload to any server.
 
-![Snapsheet](https://snapsheet-kritanshu.vercel.app/)
 
 ## Features
 
