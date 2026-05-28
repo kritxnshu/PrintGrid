@@ -28,7 +28,7 @@ A browser-based photo print sheet builder. Upload images, arrange them in a cust
 
 ```bash
 # Clone the repo
-git clone https://github.com/yourusername/snapsheet.git
+git clone https://github.com/kritxnshu/SnapSheet.git
 cd snapsheet
 
 # Install dependencies
