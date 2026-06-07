@@ -1,3 +1,90 @@
+const GRID_MIN = 1;
+const GRID_MAX = 12;
+
+const clampGridControlValue = (value) => {
+  const numericValue = Number.parseInt(value, 10);
+
+  if (Number.isNaN(numericValue)) {
+    return GRID_MIN;
+  }
+
+  return Math.min(GRID_MAX, Math.max(GRID_MIN, numericValue));
+};
+
+function GridStepper({ label, value, isDarkMode, onChange }) {
+  const handleStep = (direction) => {
+    onChange(clampGridControlValue(value + direction));
+  };
+
+  const handleInputChange = (event) => {
+    const nextValue = event.target.value;
+
+    if (nextValue === '') {
+      onChange(GRID_MIN);
+      return;
+    }
+
+    onChange(clampGridControlValue(nextValue));
+  };
+
+  const handleFocus = (event) => {
+    event.target.select();
+  };
+
+  const buttonClassName = `flex h-6 w-8 items-center justify-center text-xs transition disabled:cursor-not-allowed disabled:opacity-40 ${
+    isDarkMode
+      ? 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'
+      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+  }`;
+
+  return (
+    <label className="space-y-2">
+      <span className={`text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{label}</span>
+      <div
+        className={`flex overflow-hidden rounded-2xl border transition focus-within:border-blue-500 focus-within:ring-2 ${
+          isDarkMode
+            ? 'border-slate-700 bg-slate-950 focus-within:ring-blue-900/40'
+            : 'border-slate-300 bg-white focus-within:ring-blue-100'
+        }`}
+      >
+        <input
+          type="number"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          min={GRID_MIN}
+          max={GRID_MAX}
+          value={value}
+          onFocus={handleFocus}
+          onChange={handleInputChange}
+          className={`min-w-0 flex-1 bg-transparent px-3 py-2 text-base outline-none sm:text-sm ${
+            isDarkMode ? 'text-slate-100' : 'text-slate-900'
+          }`}
+        />
+        <div className={`flex shrink-0 flex-col border-l ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+          <button
+            type="button"
+            aria-label={`Increase ${label.toLowerCase()}`}
+            disabled={value >= GRID_MAX}
+            onClick={() => handleStep(1)}
+            className={buttonClassName}
+          >
+            {'\u25B2'}
+          </button>
+          <button
+            type="button"
+            aria-label={`Decrease ${label.toLowerCase()}`}
+            disabled={value <= GRID_MIN}
+            onClick={() => handleStep(-1)}
+            className={buttonClassName}
+          >
+            {'\u25BC'}
+          </button>
+        </div>
+      </div>
+    </label>
+  );
+}
+
 function ControlsPanel({
   rows,
   columns,
@@ -28,37 +115,8 @@ function ControlsPanel({
 
       <div className="mt-5 space-y-5">
         <div className="grid grid-cols-2 gap-3">
-          <label className="space-y-2">
-            <span className={`text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Rows</span>
-            <input
-              type="number"
-              min="1"
-              max="12"
-              value={rows}
-              onChange={(event) => onRowsChange(event.target.value)}
-              className={`w-full rounded-2xl border px-3 py-2 outline-none transition focus:border-blue-500 focus:ring-2 ${
-                isDarkMode
-                  ? 'border-slate-700 bg-slate-950 text-slate-100 focus:ring-blue-900/40'
-                  : 'border-slate-300 bg-white text-slate-900 focus:ring-blue-100'
-              }`}
-            />
-          </label>
-
-          <label className="space-y-2">
-            <span className={`text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Columns</span>
-            <input
-              type="number"
-              min="1"
-              max="12"
-              value={columns}
-              onChange={(event) => onColumnsChange(event.target.value)}
-              className={`w-full rounded-2xl border px-3 py-2 outline-none transition focus:border-blue-500 focus:ring-2 ${
-                isDarkMode
-                  ? 'border-slate-700 bg-slate-950 text-slate-100 focus:ring-blue-900/40'
-                  : 'border-slate-300 bg-white text-slate-900 focus:ring-blue-100'
-              }`}
-            />
-          </label>
+          <GridStepper label="Rows" value={rows} isDarkMode={isDarkMode} onChange={onRowsChange} />
+          <GridStepper label="Columns" value={columns} isDarkMode={isDarkMode} onChange={onColumnsChange} />
         </div>
 
         <label className="block">
