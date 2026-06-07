@@ -35,7 +35,7 @@ function ImageEditPanel({
   const brightnessValue = selectedImage.brightness ?? 0;
   const contrastValue = selectedImage.contrast ?? 0;
 
-  const btnBase = `rounded-xl border px-2.5 py-1.5 text-xs font-medium transition`;
+  const btnBase = `whitespace-nowrap rounded-xl border px-2.5 py-1.5 text-xs font-medium transition`;
   const btnNormal = isDarkMode
     ? `${btnBase} border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-500 hover:text-slate-100`
     : `${btnBase} border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:text-slate-900`;
@@ -45,12 +45,12 @@ function ImageEditPanel({
 
   return (
     <div
-      className={`mt-2 rounded-2xl shadow-lg ring-1 transition-all duration-200 ${
+      className={`mt-2 w-full rounded-2xl shadow-lg ring-1 transition-all duration-200 ${
         isDarkMode
           ? 'bg-slate-900 ring-slate-700/80 shadow-black/30'
           : 'bg-white ring-slate-200 shadow-slate-200/60'
       }`}
-      style={{ minWidth: 280, maxWidth: 560 }}
+      style={{ maxWidth: 560 }}
     >
       {/* Header */}
       <div className={`flex items-center justify-between gap-2 border-b px-3 py-2 ${
@@ -85,7 +85,7 @@ function ImageEditPanel({
       </div>
 
       {/* Tabs */}
-      <div className={`flex gap-0.5 border-b px-2 pt-1 ${
+      <div className={`flex gap-0.5 overflow-x-auto border-b px-2 pt-1 ${
         isDarkMode ? 'border-slate-800' : 'border-slate-100'
       }`}>
         {TABS.map((tab) => {
@@ -95,7 +95,7 @@ function ImageEditPanel({
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`relative rounded-t-lg px-3 py-1.5 text-xs font-medium transition ${
+              className={`relative shrink-0 rounded-t-lg px-3 py-1.5 text-xs font-medium transition ${
                 isActive
                   ? isDarkMode
                     ? 'bg-slate-800 text-blue-400'
@@ -118,7 +118,7 @@ function ImageEditPanel({
       <div className="px-3 py-3">
         {activeTab === 'size' && (
           <div className="space-y-2">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
               <span className={`shrink-0 text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Size</span>
               <input
                 type="range"

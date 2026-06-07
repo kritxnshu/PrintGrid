@@ -167,7 +167,7 @@ const SnapsheetWordmark = ({ isDarkMode }) => {
       xmlns="http://www.w3.org/2000/svg"
       role="img"
       aria-label="Snapsheet"
-      className="relative h-[56px] w-[248px] select-none sm:h-[64px] sm:w-[284px] md:h-[72px] md:w-[320px]"
+      className="relative h-[52px] w-[220px] select-none sm:h-[64px] sm:w-[284px] md:h-[72px] md:w-[320px]"
     >
       <title>Snapsheet</title>
       <desc>2x2 photo grid icon with Snapsheet wordmark</desc>
@@ -622,7 +622,7 @@ function App() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-end gap-3">
+          <div className="flex w-full flex-wrap items-end gap-3 sm:w-auto">
             <button
               type="button"
               onClick={() => setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark'))}
@@ -665,7 +665,7 @@ function App() {
             </label>
 
             {isCustomPaper ? (
-              <div className="flex flex-wrap items-end gap-3">
+              <div className="flex w-full flex-wrap items-end gap-3 sm:w-auto">
                 <label
                   className={`rounded-2xl border px-3 py-2 transition-colors duration-300 ${
                     isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'
@@ -760,13 +760,13 @@ function App() {
               </div>
             </div>
 
-            <div ref={downloadMenuRef} className="relative">
+            <div ref={downloadMenuRef} className="relative w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setIsDownloadMenuOpen((open) => !open)}
                 disabled={isExporting}
                 aria-expanded={isDownloadMenuOpen}
-                className="flex items-center gap-3 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300 sm:w-auto"
               >
                 <span>{isExporting ? 'Preparing...' : 'Download'}</span>
                 <svg
@@ -782,7 +782,7 @@ function App() {
               </button>
 
               <div
-                className={`absolute right-0 top-full z-20 mt-3 w-80 origin-top-right rounded-2xl border p-2 shadow-xl ring-1 ring-black/5 transition-all duration-200 ease-out ${
+                className={`absolute right-0 top-full z-20 mt-3 w-[calc(100vw-2rem)] max-w-[20rem] origin-top-right sm:w-80 rounded-2xl border p-2 shadow-xl ring-1 ring-black/5 transition-all duration-200 ease-out ${
                   isDarkMode
                     ? 'border-slate-700 bg-slate-900 shadow-black/30'
                     : 'border-slate-200 bg-white shadow-slate-200/80'
@@ -861,8 +861,8 @@ function App() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-screen-2xl gap-6 px-4 py-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="space-y-6">
+      <main className="mx-auto grid max-w-screen-2xl gap-4 px-3 py-4 sm:gap-6 sm:px-4 sm:py-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="space-y-4 sm:space-y-6">
           <UploadPanel
             images={images}
             isDarkMode={isDarkMode}
@@ -900,7 +900,7 @@ function App() {
           </section>
         </aside>
 
-        <section className="space-y-6">
+        <section className="space-y-4 sm:space-y-6">
           <CanvasEditor
             stageRef={stageRef}
             isDarkMode={isDarkMode}
@@ -952,6 +952,8 @@ function App() {
 }
 
 export default App;
+
+
 
 
 

@@ -311,6 +311,8 @@ function CanvasEditor({
   renderEditPanel,
 }) {
   const [dragIndex, setDragIndex] = useState(null);
+  const previewViewportRef = useRef(null);
+  const [availablePreviewWidth, setAvailablePreviewWidth] = useState(PREVIEW_MAX_WIDTH);
 
   const cells = useMemo(
     () =>
@@ -325,11 +327,52 @@ function CanvasEditor({
   );
 
   const previewScale = useMemo(
-    () => Math.min(PREVIEW_MAX_WIDTH / pageWidth, PREVIEW_MAX_HEIGHT / pageHeight, 1),
-    [pageHeight, pageWidth],
+    () =>
+      Math.min(
+        Math.min(PREVIEW_MAX_WIDTH, availablePreviewWidth) / pageWidth,
+        PREVIEW_MAX_HEIGHT / pageHeight,
+        1,
+      ),
+    [availablePreviewWidth, pageHeight, pageWidth],
   );
 
   const showEditorGuides = !isExporting;
+
+  useEffect(() => {
+    const viewport = previewViewportRef.current;
+
+    if (!viewport) {
+      return undefined;
+    }
+
+    const updateAvailableWidth = () => {
+      const isDesktopLayout = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
+
+      if (isDesktopLayout) {
+        setAvailablePreviewWidth(PREVIEW_MAX_WIDTH);
+        return;
+      }
+
+      setAvailablePreviewWidth(Math.max(180, viewport.clientWidth - 24));
+    };
+
+    updateAvailableWidth();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateAvailableWidth);
+
+      return () => {
+        window.removeEventListener('resize', updateAvailableWidth);
+      };
+    }
+
+    const resizeObserver = new ResizeObserver(updateAvailableWidth);
+    resizeObserver.observe(viewport);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   // Find the selected cell to position the inline edit panel
   const selectedCellIndex = useMemo(() => {
@@ -434,7 +477,8 @@ function CanvasEditor({
       </div>
 
       <div
-        className={`flex flex-1 flex-col items-center justify-start overflow-auto rounded-3xl border p-4 shadow-inner transition-colors duration-300 ${
+        ref={previewViewportRef}
+        className={`flex flex-1 flex-col items-center justify-start overflow-auto rounded-3xl border p-3 shadow-inner transition-colors duration-300 sm:p-4 ${
           isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-slate-200/60'
         }`}
       >
@@ -559,5 +603,6 @@ function CanvasEditor({
 }
 
 export default CanvasEditor;
+
 
 
